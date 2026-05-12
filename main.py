@@ -1,64 +1,74 @@
 import os
-import random
 import googleapiclient.discovery
-import googleapiclient.http
+import googleapiclient.errors
 from google.oauth2.credentials import Credentials
-# محاولة استدعاء مكتبات الفيديو
-try:
-    from moviepy.editor import ColorClip, TextClip, CompositeVideoClip
-except ImportError:
-    from moviepy.video.VideoClip import ColorClip
-    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
+from google.auth.transport.requests import Request
 
-# --- أولاً: دالة الرفع التلقائي ---
-def upload_to_youtube(video_path):
-    print("بدء الرفع التلقائي إلى يوتيوب...")
-    try:
-        # استدعاء البيانات من السكرت (Secrets)
-        creds = Credentials(
-            None,
-            refresh_token=os.environ.get('GOOGLE_REFRESH_TOKEN'),
-            token_uri="https://oauth2.googleapis.com/token",
-            client_id=os.environ.get('GOOGLE_CLIENT_ID'),
-            client_secret=os.environ.get('GOOGLE_CLIENT_SECRET'),
-        )
-        youtube = googleapiclient.discovery.build("youtube", "v3", credentials=creds)
+# 1. جلب البيانات من GitHub Secrets (التي عرفناها في ملف YAML)
+CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET')
+REFRESH_TOKEN = os.environ.get('GOOGLE_REFRESH_TOKEN')
+API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-        request = youtube.videos().insert(
-            part="snippet,status",
-            body={
-                "snippet": {
-                    "categoryId": "22",
-                    "description": "فيديو مرفوع تلقائياً بواسطة السكربت",
-                    "title": f"فيديو جديد {random.randint(100, 999)}"
-                },
-                "status": {"privacyStatus": "public"}
-            },
-            media_body=googleapiclient.http.MediaFileUpload(video_path, chunksize=-1, resumable=True)
-        )
-        response = request.execute()
-        print(f"تم الرفع بنجاح! رابط الفيديو: https://youtu.be/{response['id']}")
-    except Exception as e:
-        print(f"فشل الرفع التلقائي: {e}")
-
-# --- ثانياً: دالة صناعة الفيديو ---
-def create_viral_video():
-    output_file = "result.mp4"
-    try:
-        print("جاري إنشاء الفيديو...")
-        bg = ColorClip(size=(720, 1280), color=(random.randint(0,200), 40, 80), duration=5)
-        # هنا يتم حفظ الفيديو
-        bg.write_videofile(output_file, fps=24, codec="libx264", audio=False)
+def get_youtube_client():
+    """إنشاء اتصال مع يوتيوب باستخدام الـ Refresh Token"""
+    creds = Credentials(
+        token=None,  # سيتم تحديثه تلقائياً
+        refresh_token=REFRESH_TOKEN,
+        client_id=CLIENT_ID,
+        client_secret=CLIENT_SECRET,
+        token_uri="https://oauth2.googleapis.com/token"
+    )
+    
+    # تجديد الـ Access Token إذا انتهى
+    if not creds.valid:
+        creds.refresh(Request())
         
-        if os.path.exists(output_file):
-            print("الفيديو جاهز.")
-            # استدعاء الرفع التلقائي فوراً
-            upload_to_youtube(output_file)
-        else:
-            print("لم يتم العثور على الملف.")
-    except Exception as e:
-        print(f"خطأ في الصناعة: {e}")
+    return googleapiclient.discovery.build("youtube", "v3", credentials=creds)
+
+def upload_video(youtube, file_path, title, description):
+    """دالة رفع الفيديو"""
+    request_body = {
+        "snippet": {
+            "categoryId": "22",  # تصنيف People & Blogs
+            "title": title,
+            "description": description,
+            "tags": ["AI", "Shorts", "Automation"]
+        },
+        "status": {
+            "privacyStatus": "public",  # أو "private" للتجربة
+            "selfDeclaredMadeForKids": False
+        }
+    }
+    
+    # إعداد عملية الرفع
+    media_file = googleapiclient.http.MediaFileUpload(file_path, chunksize=-1, resumable=True)
+    
+    request = youtube.videos().insert(
+        part="snippet,status",
+        body=request_body,
+        media_body=media_file
+    )
+    
+    print(f"جاري رفع الفيديو: {title}...")
+    response = request.execute()
+    print(f"تم الرفع بنجاح! رابط الفيديو: https://youtu.be/{response['id']}")
 
 if __name__ == "__main__":
-    create_viral_video()
+    # ملاحظة: تأكد أن ملف الفيديو موجود في مشروعك بنفس الاسم
+    VIDEO_FILE = "output_video.mp4" 
     
+    if os.path.exists(VIDEO_FILE):
+        try:
+            youtube_client = get_youtube_client()
+            upload_video(
+                youtube_client, 
+                VIDEO_FILE, 
+                "فيديو رهيب تم إنشاؤه بالذكاء الاصطناعي", 
+                "هذا الفيديو تم رفعه تلقائياً بواسطة بوت BuzzShorts"
+            )
+        except Exception as e:
+            print(f"حدث خطأ أثناء الرفع: {e}")
+    else:
+        print(f"خطأ: لم يتم العثور على ملف {VIDEO_FILE}. تأكد من أن كود إنشاء الفيديو يعمل أولاً.")
+        
