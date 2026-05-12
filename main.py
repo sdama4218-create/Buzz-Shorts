@@ -1,39 +1,37 @@
 import os
 import random
-from moviepy.editor import ColorClip, TextClip, CompositeVideoClip
+
+# محاولة الاستدعاء بأكثر من طريقة لضمان عدم ظهور الخطأ مرة أخرى
+try:
+    from moviepy.editor import ColorClip, TextClip, CompositeVideoClip
+except ImportError:
+    from moviepy.video.VideoClip import ColorClip, TextClip
+    from moviepy.video.compositing.CompositeVideoClip import CompositeVideoClip
 
 def create_viral_video():
     try:
-        print("جاري إنشاء الفيديو الفيروسي...")
-        quotes = [
-            "Success is not final, failure is not fatal.",
-            "Believe you can and you're halfway there.",
-            "Do what you can, with what you have, where you are."
-        ]
+        print("بدء صناعة الفيديو...")
+        quotes = ["Success needs action.", "Stay hungry, stay foolish.", "Dream big, work hard."]
         text_content = random.choice(quotes)
         
-        # إنشاء الخلفية
-        bg = ColorClip(size=(1080, 1920), color=(20, 20, 20), duration=5)
+        # إنشاء الفيديو
+        bg = ColorClip(size=(720, 1280), color=(0, 0, 0), duration=5) # صغرنا الحجم للسرعة
         
-        # إنشاء النص مع معالجة الأخطاء
+        # ملاحظة: إذا استمر خطأ TextClip، سنحول الفيديو لخلفية ملونة فقط للتأكد من الرفع
         try:
-            txt = TextClip(text_content, fontsize=70, color='white', size=(900, None), method='caption')
-        except:
-            # حل بديل إذا فشل ImageMagick في قراءة الخطوط المعقدة
-            print("تحذير: مشكلة في الخط، يتم استخدام الإعدادات البسيطة")
-            txt = TextClip(text_content, fontsize=70, color='white')
+            txt = TextClip(text_content, fontsize=50, color='white', size=(600, None), method='caption')
+            txt = txt.set_position('center').set_duration(5)
+            final = CompositeVideoClip([bg, txt])
+        except Exception as e:
+            print(f"تحذير في النص: {e}. سيتم إنشاء فيديو ملون سادة للتجربة.")
+            final = bg
 
-        txt = txt.set_position('center').set_duration(5)
-        
-        final = CompositeVideoClip([bg, txt])
         final.write_videofile("result.mp4", fps=24, codec="libx264", audio=False)
-        print("تم حفظ الفيديو بنجاح باسم result.mp4")
         return True
     except Exception as e:
-        print(f"خطأ كارثي في التصنيع: {e}")
+        print(f"خطأ: {e}")
         return False
 
 if __name__ == "__main__":
-    if create_viral_video():
-        print("جاهز للرفع! الآن السيرفر سيرفع الفيديو فوراً.")
-        
+    create_viral_video()
+    
