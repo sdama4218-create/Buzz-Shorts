@@ -4,7 +4,10 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '0 7 * * *' # 10 صباحاً بتوقيت مكة/اليمن
+    - cron: '0 7 * * *'
+
+permissions:
+  contents: write
 
 jobs:
   create-and-upload:
@@ -17,17 +20,21 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install System Tools
+      - name: Install ImageMagick
         run: |
           sudo apt-get update
           sudo apt-get install -y imagemagick
+          # هذا السطر يحل مشكلة الأمان في التوزيعات الجديدة
+          sudo sed -i 's/domain="path" rights="none" pattern="@\*"/domain="path" rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
 
       - name: Install Libraries
         run: |
-          pip install -r requirements.txt
+          pip install --upgrade pip
+          pip install moviepy google-api-python-client google-auth-oauthlib requests Pillow
 
       - name: Run AI Bot
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: python main.py
+        
