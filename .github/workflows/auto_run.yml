@@ -1,21 +1,26 @@
 name: Start Bot
 on:
-  workflow_dispatch: # للتشغيل اليدوي الآن للتجربة
+  workflow_dispatch: # للتشغيل اليدوي
   schedule:
-    - cron: '0 10 * * *' # يعمل تلقائياً كل يوم الساعة 10 صباحاً
+    - cron: '0 7 * * *' # تم التعديل ليعمل الساعة 10 صباحاً بتوقيت اليمن/مكة (7 بتوقيت جرينتش)
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
+
       - name: Install Dependencies
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
       - name: Run Script
         env:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
