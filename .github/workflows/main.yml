@@ -1,44 +1,37 @@
-name: Viral AI Video Creator
+name: BuzzShorts YouTube Uploader
 
 on:
-  push:
-    branches: [ main ] # سيتم التشغيل فوراً عند رفع أي تغيير
-  workflow_dispatch: # يسمح لك بالتشغيل اليدوي للتجربة
-  schedule:
-    - cron: '0 7 * * *' # تشغيل تلقائي يومي الساعة 10 صباحاً بتوقيت مكة (7 UTC)
-
-permissions:
-  contents: write
+  workflow_dispatch: # للتشغيل اليدوي بضغطة زر
 
 jobs:
-  create-and-upload:
+  upload:
     runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud
+        id: 'auth'
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # هذا الرابط الصحيح بناءً على بياناتك
+          workload_identity_provider: 'projects/2248768852/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+          # الإيميل المتوقع بناءً على اسم مشروعك
+          service_account: 'buzz-shorts@buzz-shorts.iam.gserviceaccount.com'
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install System Tools
+      - name: Install Dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y imagemagick
-          # فك قيود الأمان لتمكين صنع النصوص على الفيديو
-          sudo sed -i 's/domain="path" rights="none" pattern="@\*"/domain="path" rights="read|write" pattern="@\*"/g' /etc/ImageMagick-6/policy.xml
+          pip install google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 moviepy==1.0.3
 
-      - name: Force Install Libraries
-        run: |
-          python -m pip install --upgrade pip
-          pip install moviepy==1.0.3
-          pip install google-api-python-client google-auth-oauthlib requests Pillow
-
-      - name: Run AI Bot
-        env:
-          # ربط السيكرتس من إعدادات GitHub بالبوت تلقائياً
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }} 
+      - name: Run BuzzShorts Script
         run: python main.py
+        
