@@ -1,7 +1,7 @@
 name: BuzzShorts YouTube Uploader
 
 on:
-  workflow_dispatch: # للتشغيل اليدوي بضغطة زر
+  workflow_dispatch: # يتيح لك تشغيل السكريبت يدوياً بضغطة زر
 
 jobs:
   upload:
@@ -18,9 +18,9 @@ jobs:
         id: 'auth'
         uses: 'google-github-actions/auth@v2'
         with:
-          # هذا الرابط الصحيح بناءً على بياناتك
+          # الرابط الخاص بمشروعك (2248768852)
           workload_identity_provider: 'projects/2248768852/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-          # الإيميل المتوقع بناءً على اسم مشروعك
+          # الإيميل الخاص بحساب الخدمة
           service_account: 'buzz-shorts@buzz-shorts.iam.gserviceaccount.com'
 
       - name: Set up Python
@@ -30,8 +30,8 @@ jobs:
 
       - name: Install Dependencies
         run: |
-          pip install google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2 moviepy==1.0.3
+          pip install google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2
 
-      - name: Run BuzzShorts Script
+      - name: Run Upload Script
         run: python main.py
         
